@@ -22,7 +22,6 @@ setup(
         'precession',
         'tqdm',
         'tqdm-pathos',
-        'h5py',
         'h5ify',
         ],
     python_requires='>=3.7',

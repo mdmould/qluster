@@ -3,7 +3,6 @@ import numpy as np
 import precession
 from tqdm import tqdm
 import tqdm_pathos
-import h5py
 import h5ify
 
 
