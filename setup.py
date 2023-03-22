@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 name = 'qluster'
-version = '0.0.2'
+version = '0.0.3'
 
 with open('README.md' ,'r') as f:
     long_description = f.read().strip()
@@ -26,5 +26,4 @@ setup(
         ],
     python_requires='>=3.7',
     )
-    
 
