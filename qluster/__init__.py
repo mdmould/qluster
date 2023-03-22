@@ -187,6 +187,6 @@ def consolidate(file, attrs, keep_clusters=False):
         h5ify.save(file, data, compression='gzip', compression_opts=9)
 
     if not keep_clusters:
-        os.system(f'rm {file.split(".h5")[0]}_*.h5')
-
+        for ind in range(attrs['n_clusters']):
+            os.system(f'rm {file.split(".h5")[0]}_{ind}.h5')
 
