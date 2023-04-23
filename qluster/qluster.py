@@ -35,11 +35,9 @@ def pairing(data, alpha, beta):
 
 def remnant(theta1, theta2, deltaphi, M, q, chi1, chi2):
 
-    s1, s2 = precession.get_fixed(q, chi1, chi2)[-2:]
-    mf = M * precession.finalmass(theta1, theta2, deltaphi, q, s1, s2)
-    chif = precession.finalspin(theta1, theta2, deltaphi, q, s1, s2)
-    vf = precession.finalkick(theta1, theta2, deltaphi, q, s1, s2, kms=True)
-
+    mf = np.squeeze( M * precession.remnantmass(theta1, theta2, q, chi1, chi2) )
+    chif = np.squeeze( precession.remnantspin(theta1, theta2, deltaphi, q, chi1, chi2) )
+    vf = np.squeeze( precession.remnantkick(theta1, theta2, deltaphi, q, chi1, chi2, kms=True) )
     return mf, chif, vf
 
 
@@ -133,7 +131,7 @@ def clusters(
     n_1g, gamma, mmin, mmax, chimin, chimax,
     alpha, beta,
     file='./cluster.h5',
-    multiprocess=False,
+    n_cpus=1,
     group_clusters=True,
     keep_clusters=False,
     ):
@@ -151,8 +149,8 @@ def clusters(
 
     vescs = sample_powerlaw(delta, vescmin, vescmax, n_clusters)
 
-    if multiprocess:
-        _ = tqdm_pathos.starmap(single, enumerate(vescs))
+    if n_cpus>1:
+        _ = tqdm_pathos.starmap(single, enumerate(vescs),n_cpus=n_cpus)
     else:
         _ = list(tqdm(map(single, range(n_clusters), vescs), total=n_clusters))
 
@@ -189,4 +187,23 @@ def consolidate(file, attrs, keep_clusters=False):
     if not keep_clusters:
         for ind in range(attrs['n_clusters']):
             os.system(f'rm {file.split(".h5")[0]}_{ind}.h5')
+
+
+
+# cluster(
+#     100,
+#     100, -2.3, 5, 50, 0, 1,
+#     0, 0,
+#     file='./cluster.h5',
+#     )
+
+clusters(
+    100, 1, 10, 500,
+    100, -2.3, 50, 100, 0, 1,
+    0, 0,
+    file='./cluster.h5',
+    n_cpus=2,
+    group_clusters=True,
+    keep_clusters=True,
+    )
 

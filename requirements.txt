@@ -1,5 +1,5 @@
 numpy
-precession
+precession>=2.0.0
 tqdm
 tqdm-pathos
 h5ify
