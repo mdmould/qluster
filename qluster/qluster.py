@@ -188,22 +188,23 @@ def consolidate(file, attrs, keep_clusters=False):
         for ind in range(attrs['n_clusters']):
             os.system(f'rm {file.split(".h5")[0]}_{ind}.h5')
 
+# def read(file):
+#     h5ify.load()    
 
+cluster(
+    100,
+    100, -2.3, 5, 50, 0, 1,
+    0, 0,
+    file='./cluster_one.h5',
+    )
 
-# cluster(
-#     100,
-#     100, -2.3, 5, 50, 0, 1,
+# clusters(
+#     100, 1, 10, 500,
+#     100, -2.3, 50, 100, 0, 1,
 #     0, 0,
 #     file='./cluster.h5',
+#     n_cpus=2,
+#     group_clusters=True,
+#     keep_clusters=False,
 #     )
-
-clusters(
-    100, 1, 10, 500,
-    100, -2.3, 50, 100, 0, 1,
-    0, 0,
-    file='./cluster.h5',
-    n_cpus=2,
-    group_clusters=True,
-    keep_clusters=True,
-    )
 
