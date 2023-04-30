@@ -195,6 +195,7 @@ def clusters(
             'chimax': chimax,
             'alpha': alpha,
             'beta': beta,
+            'seed': seed,
             }
         consolidate(file, attrs, keep_clusters)
 
