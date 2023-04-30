@@ -44,6 +44,7 @@ def remnant(theta1, theta2, deltaphi, M, q, chi1, chi2):
     vf = precession.remnantkick(
         theta1, theta2, deltaphi, q, chi1, chi2, kms=True,
         )
+
     return np.squeeze((mf, chif, vf))
 
 
@@ -64,9 +65,9 @@ def cluster(
     file='./cluster.h5'
     seed=None,
     ):
-    
+
     file = check_file(file)
-    
+
     np.random.seed(seed)
 
     masses = sample_powerlaw(gamma, mmin, mmax, n_1g)
@@ -141,32 +142,42 @@ def clusters(
     n_1g, gamma, mmin, mmax, chimin, chimax,
     alpha, beta,
     file='./cluster.h5',
+    seed=None,
     n_cpus=1,
     group_clusters=True,
     keep_clusters=False
     ):
 
     file = check_file(file)
-
-    def single(ind, vesc):
-        np.random.seed()
-
-        return cluster(
-        vesc,
-        n_1g, gamma, mmin, mmax, chimin, chimax,
-        alpha, beta,
-        file=f'{file.split(".h5")[0]}_{ind}.h5',
-        )
+    
+    np.random.seed(seed)
 
     print('Clusters')
 
-    if np.isnan(delta) and vescmin==vescmax:
-        vescs = vescmin*np.ones(n_clusters) #delta function
+    # delta function escape speeds
+    if delta is None and vescmin == vescmax:
+        vescs = vescmin * np.ones(n_clusters)
+    # power law escape speeds
     else:
-        vescs = sample_powerlaw(delta, vescmin, vescmax, n_clusters) #powerlaw
+        vescs = sample_powerlaw(delta, vescmin, vescmax, n_clusters)
 
-    if n_cpus>1:
-        _ = tqdm_pathos.starmap(single, enumerate(vescs),n_cpus=n_cpus)
+    if seed is None:
+        seeds = [None] * n_clusters
+    else:
+        seeds = list(range(seed+1, seed+1+n_clusters))
+
+    def single(ind, vesc):
+
+        return cluster(
+            vesc,
+            n_1g, gamma, mmin, mmax, chimin, chimax,
+            alpha, beta,
+            file=f'{file.split(".h5")[0]}_{ind}.h5',
+            seed=seeds[ind],
+            )
+
+    if n_cpus > 1:
+        _ = tqdm_pathos.starmap(single, enumerate(vescs), n_cpus=n_cpus)
     else:
         _ = list(tqdm(map(single, range(n_clusters), vescs), total=n_clusters))
 
@@ -205,8 +216,7 @@ def consolidate(file, attrs, keep_clusters=False):
             os.system(f'rm {file.split(".h5")[0]}_{ind}.h5')
 
 
-
 if __name__ == '__main__':
+    
     pass
-
 
