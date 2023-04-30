@@ -8,8 +8,7 @@ import h5ify
 
 def sample_powerlaw(s, lo, hi, n=1):
 
-    if s==-1:
-
+    if s == -1:
         return np.exp(np.random.uniform(np.log(lo), np.log(hi), n))
 
     else:
@@ -40,10 +39,12 @@ def pairing(data, alpha, beta):
 
 def remnant(theta1, theta2, deltaphi, M, q, chi1, chi2):
 
-    mf = np.squeeze( M * precession.remnantmass(theta1, theta2, q, chi1, chi2) )
-    chif = np.squeeze( precession.remnantspin(theta1, theta2, deltaphi, q, chi1, chi2) )
-    vf = np.squeeze( precession.remnantkick(theta1, theta2, deltaphi, q, chi1, chi2, kms=True) )
-    return mf, chif, vf
+    mf = M * precession.remnantmass(theta1, theta2, q, chi1, chi2)
+    chif = precession.remnantspin(theta1, theta2, deltaphi, q, chi1, chi2)
+    vf = precession.remnantkick(
+        theta1, theta2, deltaphi, q, chi1, chi2, kms=True,
+        )
+    return np.squeeze((mf, chif, vf))
 
 
 def check_file(file):
