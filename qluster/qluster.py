@@ -62,9 +62,12 @@ def cluster(
     n_1g, gamma, mmin, mmax, chimin, chimax,
     alpha, beta,
     file='./cluster.h5'
+    seed=None,
     ):
     
     file = check_file(file)
+    
+    np.random.seed(seed)
 
     masses = sample_powerlaw(gamma, mmin, mmax, n_1g)
     spins = np.random.uniform(chimin, chimax, n_1g)
@@ -119,6 +122,7 @@ def cluster(
         'alpha': alpha,
         'beta': beta,
         'n_mergers': len(mergers),
+        'seed': seed,
          }
 
     pars = (
