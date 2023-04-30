@@ -8,9 +8,14 @@ import h5ify
 
 def sample_powerlaw(s, lo, hi, n=1):
 
-    return (
-        np.random.rand(n) * (hi**(s + 1) - lo**(s + 1)) + lo**(s + 1)
-        )**(1 / (s + 1))
+    if s==-1:
+
+        return np.exp(np.random.uniform(np.log(lo), np.log(hi), n))
+
+    else:
+        return (
+            np.random.rand(n) * (hi**(s + 1) - lo**(s + 1)) + lo**(s + 1)
+            )**(1 / (s + 1))
 
 
 def pairing(data, alpha, beta):
@@ -55,7 +60,7 @@ def cluster(
     vesc,
     n_1g, gamma, mmin, mmax, chimin, chimax,
     alpha, beta,
-    file='./cluster.h5',
+    file='./cluster.h5'
     ):
     
     file = check_file(file)
@@ -133,12 +138,15 @@ def clusters(
     file='./cluster.h5',
     n_cpus=1,
     group_clusters=True,
-    keep_clusters=False,
+    keep_clusters=False
     ):
 
     file = check_file(file)
 
-    single = lambda ind, vesc: cluster(
+    def single(ind, vesc):
+        np.random.seed()
+
+        return cluster(
         vesc,
         n_1g, gamma, mmin, mmax, chimin, chimax,
         alpha, beta,
@@ -147,7 +155,10 @@ def clusters(
 
     print('Clusters')
 
-    vescs = sample_powerlaw(delta, vescmin, vescmax, n_clusters)
+    if np.isnan(delta) and vescmin==vescmax:
+        vescs = vescmin*np.ones(n_clusters) #delta function
+    else:
+        vescs = sample_powerlaw(delta, vescmin, vescmax, n_clusters) #powerlaw
 
     if n_cpus>1:
         _ = tqdm_pathos.starmap(single, enumerate(vescs),n_cpus=n_cpus)
@@ -188,23 +199,9 @@ def consolidate(file, attrs, keep_clusters=False):
         for ind in range(attrs['n_clusters']):
             os.system(f'rm {file.split(".h5")[0]}_{ind}.h5')
 
-# def read(file):
-#     h5ify.load()    
 
-cluster(
-    100,
-    100, -2.3, 5, 50, 0, 1,
-    0, 0,
-    file='./cluster_one.h5',
-    )
 
-# clusters(
-#     100, 1, 10, 500,
-#     100, -2.3, 50, 100, 0, 1,
-#     0, 0,
-#     file='./cluster.h5',
-#     n_cpus=2,
-#     group_clusters=True,
-#     keep_clusters=False,
-#     )
+if __name__ == '__main__':
+    pass
+
 
