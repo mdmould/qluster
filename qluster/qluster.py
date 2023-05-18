@@ -62,7 +62,7 @@ def cluster(
     vesc,
     n_1g, gamma, mmin, mmax, chimin, chimax,
     alpha, beta,
-    file='./cluster.h5'
+    file='./cluster.h5',
     seed=None,
     ):
 
@@ -145,7 +145,7 @@ def clusters(
     seed=None,
     n_cpus=1,
     group_clusters=True,
-    keep_clusters=False
+    keep_clusters=False,
     ):
 
     file = check_file(file)
