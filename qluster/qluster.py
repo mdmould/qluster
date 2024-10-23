@@ -3,10 +3,11 @@ import numpy as np
 import precession
 from tqdm import tqdm
 import tqdm_pathos
+import parabar
 import h5ify
 
 
-def sample_powerlaw(s, lo, hi, n=1):
+def sample_powerlaw(s, lo, hi, n = 1):
 
     if s == -1:
         return np.exp(np.random.uniform(np.log(lo), np.log(hi), n))
@@ -42,31 +43,23 @@ def remnant(theta1, theta2, deltaphi, M, q, chi1, chi2):
     mf = M * precession.remnantmass(theta1, theta2, q, chi1, chi2)
     chif = precession.remnantspin(theta1, theta2, deltaphi, q, chi1, chi2)
     vf = precession.remnantkick(
-        theta1, theta2, deltaphi, q, chi1, chi2, kms=True,
+        theta1, theta2, deltaphi, q, chi1, chi2, kms = True,
         )
 
     return np.squeeze((mf, chif, vf))
-
-
-def check_file(file):
-
-    if file[-3:] != '.h5':
-        file += '.h5'
-
-    assert not os.path.isfile(file)
-
-    return file
 
 
 def cluster(
     vesc,
     n_1g, gamma, mmin, mmax, chimin, chimax,
     alpha, beta,
-    file='./cluster.h5',
-    seed=None,
+    file = None,
+    seed = 0,
+    tqdm_kwargs = {},
     ):
 
-    file = check_file(file)
+    if file is not None:
+        assert not os.path.exists(file)
 
     np.random.seed(seed)
 
@@ -76,7 +69,7 @@ def cluster(
     data = np.transpose([masses, spins, generations])
     mergers = []
 
-    pbar = tqdm(total=len(data)-1, desc='Mergers')
+    pbar = tqdm(total = len(data), **tqdm_kwargs)
 
     while len(data) > 1:
         bh1, bh2, data = pairing(data, alpha, beta)
@@ -105,7 +98,7 @@ def cluster(
         mergers.append(merger)
 
         if vf < vesc:
-            data = np.append(data, [[mf, chif, genf]], axis=0)
+            data = np.append(data, [[mf, chif, genf]], axis = 0)
             pbar.update(1)
         else:
             pbar.update(2)
@@ -130,29 +123,33 @@ def cluster(
         'M', 'q', 'chi1', 'chi2', 'theta1', 'theta2', 'deltaphi', 'generation',
         'mf', 'chif', 'vf', 'genf',
         )
-    data = {par: val for par, val in zip(pars, np.transpose(mergers))}
 
-    h5ify.save(
-        file, {'attrs': attrs, **data}, compression='gzip', compression_opts=9,
-        )
+    result = dict(zip(pars, np.transpose(mergers)))
+    result['attrs'] = attrs
+
+    if file is not None:
+        h5ify.save(file, result, compression = 'gzip', compression_opts = 9)
+
+    return result
 
 
 def clusters(
     n_clusters, delta, vescmin, vescmax,
     n_1g, gamma, mmin, mmax, chimin, chimax,
     alpha, beta,
-    file='./cluster.h5',
-    seed=None,
-    n_cpus=1,
-    group_clusters=True,
-    keep_clusters=False,
+    label = 'qluster',
+    path = './',
+    seed = 0,
+    n_cpus = 1,
+    group_clusters = True,
+    keep_grouped_clusters = False,
     ):
 
-    file = check_file(file)
+    if group_clusters:
+        file = path + label + '.h5'
+        assert not os.path.exists(file)
     
     np.random.seed(seed)
-
-    print('Clusters')
 
     # delta function escape speeds
     if delta is None and vescmin == vescmax:
@@ -161,25 +158,30 @@ def clusters(
     else:
         vescs = sample_powerlaw(delta, vescmin, vescmax, n_clusters)
 
-    if seed is None:
-        seeds = [None] * n_clusters
-    else:
-        seeds = list(range(seed+1, seed+1+n_clusters))
+    seeds = list(range(seed + 1, seed + 1 + n_clusters))
 
-    def single(ind, vesc):
-
-        return cluster(
-            vesc,
+    def single(idx):
+        
+        result = cluster(
+            vescs[idx],
             n_1g, gamma, mmin, mmax, chimin, chimax,
             alpha, beta,
-            file=f'{file.split(".h5")[0]}_{ind}.h5',
-            seed=seeds[ind],
-            )
+            file = path + label + str(idx) + '.h5',
+            seed = seeds[idx],
+            tqdm_kwargs = dict(position = 1 + idx),
+        )
+
+    tqdm_kwargs = dict(desc = 'qluster', position = 0)
 
     if n_cpus > 1:
-        _ = tqdm_pathos.starmap(single, enumerate(vescs), n_cpus=n_cpus)
+        _ = tqdm_pathos.map(
+            single,
+            range(n_clusters),
+            n_cpus = n_cpus,
+            tqdm_kwargs = tqdm_kwargs,
+        )
     else:
-        _ = list(tqdm(map(single, range(n_clusters), vescs), total=n_clusters))
+        _ = list(tqdm(map(single, range(n_clusters)), **tqdm_kwargs))
 
     if group_clusters:
         attrs = {
@@ -197,27 +199,17 @@ def clusters(
             'beta': beta,
             'seed': seed,
             }
-        consolidate(file, attrs, keep_clusters)
+        consolidate(file, attrs, keep_grouped_clusters)
 
 
-def consolidate(file, attrs, keep_clusters=False):
-
-    file = check_file(file)
-
-    print('Consolidating')
+def consolidate(file, attrs, keep_grouped_clusters = False):
 
     h5ify.save(file, {'attrs': attrs})
 
-    for ind in tqdm(range(attrs['n_clusters'])):
-        data = {str(ind): h5ify.load(f'{file.split(".h5")[0]}_{ind}.h5')}
-        h5ify.save(file, data, compression='gzip', compression_opts=9)
+    for idx in tqdm(range(attrs['n_clusters']), desc = 'consolidating'):
+        cluster_file = file.split('.h5')[0] + str(idx) + '.h5'
+        data = {str(idx): h5ify.load(cluster_file)}
+        h5ify.save(file, data, compression = 'gzip', compression_opts = 9)
 
-    if not keep_clusters:
-        for ind in range(attrs['n_clusters']):
-            os.system(f'rm {file.split(".h5")[0]}_{ind}.h5')
-
-
-if __name__ == '__main__':
-    
-    pass
-
+        if not keep_grouped_clusters:
+            os.system('rm ' + cluster_file)
